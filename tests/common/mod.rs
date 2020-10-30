@@ -4,7 +4,7 @@ use tokio;
 use uuid::Uuid;
 use zero2prod;
 
-use zero2prod::configuration::{get_configuration, DatabaseSettings};
+use zero2prod::configuration::{get_configuration, DbConfig};
 use zero2prod::run;
 
 pub struct TestApp {
@@ -12,7 +12,7 @@ pub struct TestApp {
     pub db_pool: PgPool,
 }
 
-async fn config_db(db_config: &DatabaseSettings) -> PgPool {
+async fn config_db(db_config: &DbConfig) -> PgPool {
     let mut db_conn = PgConnection::connect(&db_config.connection_string_without_db())
         .await
         .expect("Failed to connect to Postgres.");

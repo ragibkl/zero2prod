@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+cargo fmt --all
+cargo clippy -- -D warnings
