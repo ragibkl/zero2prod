@@ -5,17 +5,27 @@ use uuid::Uuid;
 use zero2prod;
 
 use zero2prod::configuration::{get_configuration, DbConfig};
-use zero2prod::run;
+use zero2prod::startup::run;
+use zero2prod::telemetry::{get_subscriber, init_subscriber};
 
 pub struct TestApp {
     pub address: String,
     pub db_pool: PgPool,
 }
 
+lazy_static::lazy_static! {
+    static ref TRACING: () = {
+        let filter = if std::env::var("TEST_LOG").is_ok() { "debug" } else { "" };
+        let subscriber = get_subscriber("test".into(), filter.into());
+        init_subscriber(subscriber);
+    };
+}
+
 async fn config_db(db_config: &DbConfig) -> PgPool {
     let mut db_conn = PgConnection::connect(&db_config.connection_string_without_db())
         .await
         .expect("Failed to connect to Postgres.");
+
     db_conn
         .execute(&*format!(
             r#"CREATE DATABASE "{}";"#,
@@ -37,6 +47,8 @@ async fn config_db(db_config: &DbConfig) -> PgPool {
 
 // Launch our application in the background ~somehow~
 pub async fn spawn_app() -> TestApp {
+    lazy_static::initialize(&TRACING);
+
     // load app_config
     let mut app_config = get_configuration().expect("Failed to read configuration.");
 
