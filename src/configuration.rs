@@ -1,5 +1,8 @@
 use serde_aux::field_attributes::deserialize_number_from_string;
-use sqlx::postgres::PgConnectOptions;
+use sqlx::{
+    postgres::{PgConnectOptions, PgSslMode},
+    ConnectOptions,
+};
 use std::convert::{TryFrom, TryInto};
 
 #[derive(serde::Deserialize)]
@@ -16,6 +19,7 @@ pub struct DatabaseSettings {
 
     #[serde(deserialize_with = "deserialize_number_from_string")]
     pub port: u16,
+    pub require_ssl: bool,
 
     pub username: String,
     pub password: String,
@@ -24,15 +28,24 @@ pub struct DatabaseSettings {
 
 impl DatabaseSettings {
     pub fn without_db(&self) -> PgConnectOptions {
+        let ssl_mode = if self.require_ssl {
+            PgSslMode::Require
+        } else {
+            PgSslMode::Prefer
+        };
         PgConnectOptions::new()
             .host(&self.host)
             .port(self.port)
             .username(&self.username)
             .password(&self.password)
+            .ssl_mode(ssl_mode)
     }
 
     pub fn with_db(&self) -> PgConnectOptions {
-        self.without_db().database(&self.database_name)
+        self.without_db()
+            .database(&self.database_name)
+            .log_statements(log::LevelFilter::Trace)
+            .to_owned()
     }
 }
 
